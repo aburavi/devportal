@@ -1,0 +1,10 @@
+include: '/pipeline/template.yml'
+
+variables:
+  SERVICE_DIR: Frontend
+  NAMESPACE: openapi
+  DEPLOYMENT: frontend
+  CONTAINER_NAME: frontend
+  IMAGE_NAME: frontend
+
+

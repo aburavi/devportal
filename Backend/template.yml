@@ -1,0 +1,52 @@
+variables:
+  REGISTRY: registry.gitlab.com/trizelka/openapi/devportal
+  NAMESPACE: openapi
+  TAG_PROD: prod
+  TAG_DEV: dev
+  SERVICE_DIR: test
+  DEPLOYMENT: test
+  IMAGE_NAME: test
+  CONTAINER_NAME: test
+
+stages:
+- build
+- deploy
+
+build_dev:
+  stage: build
+  image: docker:18.09
+  # alpine:latest
+  services:
+  - docker:18.09-dind
+  script:
+  - eval "$(docker-machine env default)"
+  - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  - echo "#!/bin/sh" > tag.sh
+  - echo "export TAG=$(date '+%y%m%d%H%M%S')_$CI_COMMIT_SHORT_SHA" >> tag.sh
+  - source tag.sh
+  - docker build $SERVICE_DIR/. -t $REGISTRY/$IMAGE_NAME:$TAG_DEV-$TAG --network=host > /dev/null
+  - docker push $REGISTRY/$IMAGE_NAME:$TAG_DEV-$TAG > /dev/null
+  artifacts:
+    paths:
+    - tag.sh
+  only:
+  - dev
+
+deploy_dev_trizelka:
+  stage: deploy
+  image: google/cloud-sdk:alpine
+  dependencies: 
+  - build_dev
+  script:
+  - source tag.sh
+  - apk add --no-cache curl
+  - curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+  - chmod +x ./kubectl
+  - mv ./kubectl /usr/local/bin/kubectl
+  - gcloud auth activate-service-account --key-file $GCP_SERVICE_KEY
+  - gcloud config set project $GCP_PROJECT_ID
+  - gcloud container clusters get-credentials $CLUSTER_NAME --zone $ZONE --project $GCP_PROJECT_ID
+  - kubectl set image deploy/$DEPLOYMENT $CONTAINER_NAME=$REGISTRY/$IMAGE_NAME:$TAG_DEV-$TAG -n $NAMESPACE
+  only:
+  - dev
+

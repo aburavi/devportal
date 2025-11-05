@@ -1,0 +1,12 @@
+include: '/pipeline/template.yml'
+
+variables:
+  SERVICE_DIR: Backend/services/userapp
+  NAMESPACE: openapi
+  DEPLOYMENT: userapp
+  CONTAINER_NAME: userapp
+  IMAGE_NAME: userapp
+  
+
+
+  

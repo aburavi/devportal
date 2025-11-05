@@ -1,0 +1,30 @@
+services:
+  userapp:
+    build: ./Backend/services/userapp
+    container_name: userapp
+    volumes:
+      - ./Backend/services/userapp:/app
+    restart: unless-stopped
+    command: /start-reload.sh
+    ports:
+      - 8088:80
+    networks:
+      - snap-aspi
+
+  devportal:
+    container_name: devportal
+    restart: always
+    build: ./Frontend
+    volumes:
+      - .:/app
+      - /app/node_modules/
+    networks:
+      - snap-aspi
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    ports:
+      - "8087:80"
+
+networks:
+  snap-aspi:
+    external: true
